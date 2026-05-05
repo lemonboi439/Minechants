@@ -13,9 +13,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.recipe.RecipeType;
-import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.recipe.SmeltingRecipe;
-import net.minecraft.recipe.input.SingleStackRecipeInput;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -41,23 +39,25 @@ public abstract class BlockMixin {
             return;
         }
 
-        var enchantmentLookup = world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var smeltingEntry = enchantmentLookup.getOrThrow(ModEnchantments.SMELTING);
-        if (EnchantmentHelper.getLevel(smeltingEntry, tool) > 0) {
-            var silkTouchEntry = enchantmentLookup.getOrThrow(Enchantments.SILK_TOUCH);
-            if (EnchantmentHelper.getLevel(silkTouchEntry, tool) > 0) {
-                return;
-            }
+        var enchantmentLookup = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        var smeltingEntry = enchantmentLookup.get(ModEnchantments.SMELTING);
+        if (EnchantmentHelper.getLevel(smeltingEntry, tool) <= 0) {
+            return;
+        }
 
-            var input = new SingleStackRecipeInput(new ItemStack(state.getBlock().asItem()));
-            Optional<RecipeEntry<SmeltingRecipe>> recipe = world.getRecipeManager()
-                    .getFirstMatch(RecipeType.SMELTING, input, world);
+        var silkTouchEntry = Enchantments.SILK_TOUCH;
+        if (EnchantmentHelper.getLevel(silkTouchEntry, tool) > 0) {
+            return;
+        }
 
-            if (recipe.isPresent()) {
-                ItemStack result = recipe.get().value().craft(input, world.getRegistryManager());
-                if (!result.isEmpty()) {
-                    cir.setReturnValue(Collections.singletonList(result));
-                }
+        var inventory = new net.minecraft.inventory.SimpleInventory(new ItemStack(state.getBlock().asItem()));
+        Optional<SmeltingRecipe> recipe = world.getRecipeManager()
+                .getFirstMatch(RecipeType.SMELTING, inventory, world);
+
+        if (recipe.isPresent()) {
+            ItemStack result = recipe.get().craft(inventory, world.getRegistryManager());
+            if (!result.isEmpty()) {
+                cir.setReturnValue(Collections.singletonList(result));
             }
         }
     }
@@ -77,8 +77,8 @@ public abstract class BlockMixin {
             return;
         }
 
-        var enchantmentLookup = serverWorld.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var magneticEntry = enchantmentLookup.getOrThrow(ModEnchantments.MAGNETIC);
+        var enchantmentLookup = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        var magneticEntry = enchantmentLookup.get(ModEnchantments.MAGNETIC);
         if (EnchantmentHelper.getLevel(magneticEntry, context.tool()) <= 0) {
             return;
         }
