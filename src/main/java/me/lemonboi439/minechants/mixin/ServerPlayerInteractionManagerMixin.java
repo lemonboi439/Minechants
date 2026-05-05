@@ -9,13 +9,10 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.collection.Pool;
 import net.minecraft.world.World;
 import net.minecraft.world.explosion.Explosion;
 import net.minecraft.world.explosion.ExplosionBehavior;
@@ -71,12 +68,12 @@ public abstract class ServerPlayerInteractionManagerMixin {
             return;
         }
 
-        var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var explosiveEntry = enchantmentLookup.getOrThrow(ModEnchantments.EXPLOSIVE);
-        int level = EnchantmentHelper.getLevel(explosiveEntry, tool);
-        if (level <= 0 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.EXPLOSIVE)) {
-            this.minechants$scheduleMinerBurst(pos, tool, enchantmentLookup);
-            return;
+         var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+         var explosiveEntry = enchantmentLookup.getEntry(ModEnchantments.EXPLOSIVE).orElseThrow();
+         int level = EnchantmentHelper.getLevel(explosiveEntry, tool);
+         if (level <= 0 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.EXPLOSIVE)) {
+             this.minechants$scheduleMinerBurst(pos, tool);
+             return;
         }
 
         BlockPos direction = this.minechants$getForwardStep(this.player.getRotationVec(1.0F));
@@ -89,35 +86,32 @@ public abstract class ServerPlayerInteractionManagerMixin {
             ServerPlayerInteractionManager manager = (ServerPlayerInteractionManager) (Object) this;
             double radius = minechants$explosiveRadii[Math.min(level, minechants$explosiveRadii.length) - 1];
             Vec3d center = Vec3d.ofCenter(pos).add(Vec3d.of(direction).multiply(0.8D + (0.35D * level)));
-            this.player.getEntityWorld().createExplosion(
-                    this.player,
-                    this.player.getEntityWorld().getDamageSources().explosion(this.player, this.player),
-                    minechants$visualExplosionBehavior,
-                    center.x,
-                    center.y,
-                    center.z,
-                    1.0F + (level * 0.35F),
-                    false,
-                    World.ExplosionSourceType.TNT,
-                    ParticleTypes.EXPLOSION_EMITTER,
-                    ParticleTypes.EXPLOSION,
-                    Pool.empty(),
-                    SoundEvents.ENTITY_GENERIC_EXPLODE
-            );
+             this.player.getEntityWorld().createExplosion(
+                     this.player,
+                     this.player.getEntityWorld().getDamageSources().explosion(this.player, this.player),
+                     minechants$visualExplosionBehavior,
+                     center.x,
+                     center.y,
+                     center.z,
+                     1.0F + (level * 0.35F),
+                     false,
+                     World.ExplosionSourceType.TNT
+             );
             this.minechants$breakBlastArea(manager, center, radius, pos);
         } finally {
             this.minechants$processingExplosiveBreak = false;
         }
     }
 
-    @Unique
-    private void minechants$scheduleMinerBurst(BlockPos pos, ItemStack tool, net.minecraft.registry.RegistryEntryLookup<net.minecraft.enchantment.Enchantment> enchantmentLookup) {
-        if (this.minechants$processingMinerBreak) {
-            return;
-        }
+     @Unique
+     private void minechants$scheduleMinerBurst(BlockPos pos, ItemStack tool) {
+         if (this.minechants$processingMinerBreak) {
+             return;
+         }
 
-        var minerEntry = enchantmentLookup.getOrThrow(ModEnchantments.THREE_BY_THREE_MINER);
-        if (EnchantmentHelper.getLevel(minerEntry, tool) <= 0 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.THREE_BY_THREE_MINER)) {
+         var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+         var minerEntry = enchantmentLookup.getEntry(ModEnchantments.THREE_BY_THREE_MINER).orElseThrow();
+         if (EnchantmentHelper.getLevel(minerEntry, tool) <= 0 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.THREE_BY_THREE_MINER)) {
             return;
         }
 
