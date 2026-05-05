@@ -35,19 +35,19 @@ import java.util.function.Supplier;
 public abstract class BlockMixin {
     private static final double MINECHANTS_MAGNETIC_SPEED_MULTIPLIER = 1.3D;
 
-    @Inject(method = "getDroppedStacks(Lnet/minecraft/block/BlockState;Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/entity/BlockEntity;Lnet/minecraft/entity/Entity;Lnet/minecraft/item/ItemStack;)Ljava/util/List;", at = @At("HEAD"), cancellable = true)
-    private static void getDroppedStacks(BlockState state, ServerWorld world, BlockPos pos, BlockEntity blockEntity, Entity entity, ItemStack tool, CallbackInfoReturnable<List<ItemStack>> cir) {
-        if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player) || !FeatureToggleState.isEnabled(player, ToggleFeature.SMELTING)) {
-            return;
-        }
+     @Inject(method = "getDroppedStacks(Lnet/minecraft/block/BlockState;Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/entity/BlockEntity;Lnet/minecraft/entity/Entity;Lnet/minecraft/item/ItemStack;)Ljava/util/List;", at = @At("HEAD"), cancellable = true)
+     private static void getDroppedStacks(BlockState state, ServerWorld world, BlockPos pos, BlockEntity blockEntity, Entity entity, ItemStack tool, CallbackInfoReturnable<List<ItemStack>> cir) {
+         if (!(entity instanceof net.minecraft.server.network.ServerPlayerEntity player) || !FeatureToggleState.isEnabled(player, ToggleFeature.SMELTING)) {
+             return;
+         }
 
-        var enchantmentLookup = world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var smeltingEntry = enchantmentLookup.getOrThrow(ModEnchantments.SMELTING);
-        if (EnchantmentHelper.getLevel(smeltingEntry, tool) > 0) {
-            var silkTouchEntry = enchantmentLookup.getOrThrow(Enchantments.SILK_TOUCH);
-            if (EnchantmentHelper.getLevel(silkTouchEntry, tool) > 0) {
-                return;
-            }
+         var enchantmentLookup = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+         var smeltingEntry = enchantmentLookup.getEntry(ModEnchantments.SMELTING).orElseThrow();
+         if (EnchantmentHelper.getLevel(smeltingEntry, tool) > 0) {
+             var silkTouchEntry = enchantmentLookup.getEntry(Enchantments.SILK_TOUCH).orElseThrow();
+             if (EnchantmentHelper.getLevel(silkTouchEntry, tool) > 0) {
+                 return;
+             }
 
             var input = new SingleStackRecipeInput(new ItemStack(state.getBlock().asItem()));
             Optional<RecipeEntry<SmeltingRecipe>> recipe = world.getRecipeManager()
@@ -77,9 +77,9 @@ public abstract class BlockMixin {
             return;
         }
 
-        var enchantmentLookup = serverWorld.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var magneticEntry = enchantmentLookup.getOrThrow(ModEnchantments.MAGNETIC);
-        if (EnchantmentHelper.getLevel(magneticEntry, context.tool()) <= 0) {
+         var enchantmentLookup = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+         var magneticEntry = enchantmentLookup.getEntry(ModEnchantments.MAGNETIC).orElseThrow();
+         if (EnchantmentHelper.getLevel(magneticEntry, context.tool()) <= 0) {
             return;
         }
 
