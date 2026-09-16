@@ -1,7 +1,7 @@
 package me.lemonboi439.minechants.util;
 
 import me.lemonboi439.minechants.config.MinechantsConfig;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -14,19 +14,19 @@ public final class FeatureToggleState {
     private FeatureToggleState() {
     }
 
-    public static boolean isEnabled(ServerPlayerEntity player, ToggleFeature feature) {
+    public static boolean isEnabled(ServerPlayer player, ToggleFeature feature) {
         if (!MinechantsConfig.isFeatureEnabled(feature)) {
             return false;
         }
 
         return PLAYER_STATES
-                .getOrDefault(player.getUuid(), new EnumMap<>(ToggleFeature.class))
+                .getOrDefault(player.getUUID(), new EnumMap<>(ToggleFeature.class))
                 .getOrDefault(feature, MinechantsConfig.isEnabledByDefault(feature));
     }
 
-    public static boolean toggle(ServerPlayerEntity player, ToggleFeature feature) {
+    public static boolean toggle(ServerPlayer player, ToggleFeature feature) {
         EnumMap<ToggleFeature, Boolean> toggles = PLAYER_STATES.computeIfAbsent(
-                player.getUuid(),
+                player.getUUID(),
                 uuid -> new EnumMap<>(ToggleFeature.class)
         );
         boolean enabled = !toggles.getOrDefault(feature, MinechantsConfig.isEnabledByDefault(feature));
@@ -34,3 +34,11 @@ public final class FeatureToggleState {
         return enabled;
     }
 }
+
+
+
+
+
+
+
+

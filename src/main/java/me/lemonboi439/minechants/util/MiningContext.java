@@ -1,7 +1,7 @@
 package me.lemonboi439.minechants.util;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.server.level.ServerPlayer;
 
 public final class MiningContext {
     private static final ThreadLocal<Context> CURRENT = new ThreadLocal<>();
@@ -9,7 +9,7 @@ public final class MiningContext {
     private MiningContext() {
     }
 
-    public static void push(ServerPlayerEntity player, ItemStack tool) {
+    public static void push(ServerPlayer player, ItemStack tool) {
         CURRENT.set(new Context(player, tool));
     }
 
@@ -21,6 +21,14 @@ public final class MiningContext {
         return CURRENT.get();
     }
 
-    public record Context(ServerPlayerEntity player, ItemStack tool) {
+    public record Context(ServerPlayer player, ItemStack tool) {
     }
 }
+
+
+
+
+
+
+
+

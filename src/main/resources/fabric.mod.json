@@ -17,9 +17,6 @@
     "client": [
       "me.lemonboi439.minechants.client.MinechantsClient"
     ],
-    "modmenu": [
-      "me.lemonboi439.minechants.client.ModMenuCompat"
-    ],
     "main": [
       "me.lemonboi439.minechants.Minechants"
     ]
@@ -36,8 +33,5 @@
     "fabric-api": "*",
     "minecraft": "${minecraft_version}"
   },
-  "suggests": {
-    "cloth-config": "*",
-    "modmenu": "*"
-  }
+  "suggests": {}
 }

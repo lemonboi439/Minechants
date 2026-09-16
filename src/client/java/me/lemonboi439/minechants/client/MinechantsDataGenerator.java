@@ -8,3 +8,11 @@ public class MinechantsDataGenerator implements DataGeneratorEntrypoint {
     public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
     }
 }
+
+
+
+
+
+
+
+

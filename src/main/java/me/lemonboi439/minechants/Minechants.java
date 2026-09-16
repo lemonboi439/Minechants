@@ -9,18 +9,19 @@ import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
-import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
+import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.loot.LootTables;
-import net.minecraft.loot.entry.ItemEntry;
-import net.minecraft.loot.function.EnchantRandomlyLootFunction;
-import net.minecraft.item.Items;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.EnchantRandomlyFunction;
+import net.minecraft.world.item.Items;
 
 public class Minechants implements ModInitializer {
     public static final String MOD_ID = "minechants";
@@ -30,22 +31,28 @@ public class Minechants implements ModInitializer {
         MinechantsConfig.load();
         this.minechants$registerOptionalTreasurePacks();
         ModEnchantments.registerModEnchantments();
-        LootTableEvents.MODIFY.register((key, tableBuilder, source) -> {
-            if (source.isBuiltin() && key.equals(LootTables.STRONGHOLD_LIBRARY_CHEST)) {
-                tableBuilder.pool(net.minecraft.loot.LootPool.builder()
-                        .with(ItemEntry.builder(Items.BOOK)
-                                .apply(EnchantRandomlyLootFunction.builder(null))));
+        LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
+            if (source.isBuiltin() && key.equals(BuiltInLootTables.STRONGHOLD_LIBRARY)) {
+                var enchantments = registries.lookupOrThrow(Registries.ENCHANTMENT);
+                for (var enchantmentKey : new net.minecraft.resources.ResourceKey[] {
+                        ModEnchantments.SMELTING, ModEnchantments.EXPLOSIVE,
+                        ModEnchantments.THREE_BY_THREE_MINER, ModEnchantments.MAGNETIC}) {
+                    var enchantment = enchantments.getOrThrow(enchantmentKey);
+                    tableBuilder.withPool(net.minecraft.world.level.storage.loot.LootPool.lootPool()
+                            .add(LootItem.lootTableItem(Items.BOOK)
+                                    .apply(new EnchantRandomlyFunction.Builder().withEnchantment(enchantment))));
+                }
             }
         });
-        PayloadTypeRegistry.playC2S().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.ID, (payload, context) -> {
-            ServerPlayerEntity player = context.player();
+        PayloadTypeRegistry.serverboundPlay().register(ToggleFeaturePayload.TYPE, ToggleFeaturePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ExplosiveConfigPayload.TYPE, ExplosiveConfigPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.TYPE, (payload, context) -> {
+            ServerPlayer player = context.player();
             context.server().execute(() -> {
                 ToggleFeature feature = payload.feature();
                 boolean enabled = FeatureToggleState.toggle(player, feature);
-                player.sendMessage(
-                        Text.translatable(
+                player.sendSystemMessage(
+                        Component.translatable(
                                 enabled ? this.minechants$getEnabledMessageKey(feature) : this.minechants$getDisabledMessageKey(feature)
                         ),
                         true
@@ -62,7 +69,7 @@ public class Minechants implements ModInitializer {
 
         if (!MinechantsConfig.threeByThreeTreasureOnly) {
             ResourceManagerHelper.registerBuiltinResourcePack(
-                    Identifier.of(MOD_ID, "three_by_three_non_treasure"),
+                    Identifier.fromNamespaceAndPath(MOD_ID, "three_by_three_non_treasure"),
                     modContainer,
                     ResourcePackActivationType.DEFAULT_ENABLED
             );
@@ -70,7 +77,7 @@ public class Minechants implements ModInitializer {
 
         if (!MinechantsConfig.explosiveTreasureOnly) {
             ResourceManagerHelper.registerBuiltinResourcePack(
-                    Identifier.of(MOD_ID, "explosive_non_treasure"),
+                    Identifier.fromNamespaceAndPath(MOD_ID, "explosive_non_treasure"),
                     modContainer,
                     ResourcePackActivationType.DEFAULT_ENABLED
             );
@@ -95,3 +102,10 @@ public class Minechants implements ModInitializer {
         };
     }
 }
+
+
+
+
+
+
+

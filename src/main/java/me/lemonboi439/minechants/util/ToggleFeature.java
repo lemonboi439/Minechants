@@ -6,3 +6,11 @@ public enum ToggleFeature {
     EXPLOSIVE,
     MAGNETIC
 }
+
+
+
+
+
+
+
+
