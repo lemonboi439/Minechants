@@ -1,5 +1,6 @@
 package me.lemonboi439.minechants.mixin;
 
+import me.lemonboi439.minechants.Minechants;
 import me.lemonboi439.minechants.enchantment.ModEnchantments;
 import me.lemonboi439.minechants.util.FeatureToggleState;
 import me.lemonboi439.minechants.util.MiningContext;
@@ -9,13 +10,12 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
-import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.collection.Pool;
 import net.minecraft.world.World;
 import net.minecraft.world.explosion.Explosion;
 import net.minecraft.world.explosion.ExplosionBehavior;
@@ -33,6 +33,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ServerPlayerInteractionManager.class)
 public abstract class ServerPlayerInteractionManagerMixin {
+    @Unique
+    private static final TagKey<net.minecraft.block.Block> MINECHANTS_THREE_BY_THREE_BLACKLIST = TagKey.of(
+            RegistryKeys.BLOCK,
+            Identifier.of(Minechants.MOD_ID, "3x3_miner_blacklist")
+    );
+
     @Unique
     private static final double[] minechants$explosiveRadii = {1.35D, 1.85D, 2.35D};
     @Unique
@@ -71,11 +77,11 @@ public abstract class ServerPlayerInteractionManagerMixin {
             return;
         }
 
-        var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var explosiveEntry = enchantmentLookup.getOrThrow(ModEnchantments.EXPLOSIVE);
+        var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        var explosiveEntry = enchantmentLookup.getEntry(ModEnchantments.EXPLOSIVE).orElseThrow();
         int level = EnchantmentHelper.getLevel(explosiveEntry, tool);
         if (level <= 0 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.EXPLOSIVE)) {
-            this.minechants$scheduleMinerBurst(pos, tool, enchantmentLookup);
+            this.minechants$scheduleMinerBurst(pos, tool);
             return;
         }
 
@@ -98,11 +104,7 @@ public abstract class ServerPlayerInteractionManagerMixin {
                     center.z,
                     1.0F + (level * 0.35F),
                     false,
-                    World.ExplosionSourceType.TNT,
-                    ParticleTypes.EXPLOSION_EMITTER,
-                    ParticleTypes.EXPLOSION,
-                    Pool.empty(),
-                    SoundEvents.ENTITY_GENERIC_EXPLODE
+                    World.ExplosionSourceType.TNT
             );
             this.minechants$breakBlastArea(manager, center, radius, pos);
         } finally {
@@ -111,12 +113,13 @@ public abstract class ServerPlayerInteractionManagerMixin {
     }
 
     @Unique
-    private void minechants$scheduleMinerBurst(BlockPos pos, ItemStack tool, net.minecraft.registry.RegistryEntryLookup<net.minecraft.enchantment.Enchantment> enchantmentLookup) {
+    private void minechants$scheduleMinerBurst(BlockPos pos, ItemStack tool) {
         if (this.minechants$processingMinerBreak) {
             return;
         }
 
-        var minerEntry = enchantmentLookup.getOrThrow(ModEnchantments.THREE_BY_THREE_MINER);
+        var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        var minerEntry = enchantmentLookup.getEntry(ModEnchantments.THREE_BY_THREE_MINER).orElseThrow();
         if (EnchantmentHelper.getLevel(minerEntry, tool) <= 0 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.THREE_BY_THREE_MINER)) {
             return;
         }
@@ -176,23 +179,17 @@ public abstract class ServerPlayerInteractionManagerMixin {
 
     @Unique
     private BlockPos[] minechants$getMinerOffsets(BlockPos forward) {
-        List<BlockPos> offsets = new ArrayList<>(26);
+        List<BlockPos> offsets = new ArrayList<>(8);
         BlockPos axisA = this.minechants$getPrimaryPerpendicularAxis(forward);
         BlockPos axisB = this.minechants$getSecondaryPerpendicularAxis(forward);
 
-        for (int depth = 0; depth <= 2; depth++) {
-            for (int a = -1; a <= 1; a++) {
-                for (int b = -1; b <= 1; b++) {
-                    if (depth == 0 && a == 0 && b == 0) {
-                        continue;
-                    }
-
-                    offsets.add(
-                            forward.multiply(depth)
-                                    .add(axisA.multiply(a))
-                                    .add(axisB.multiply(b))
-                    );
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                if (a == 0 && b == 0) {
+                    continue;
                 }
+
+                offsets.add(axisA.multiply(a).add(axisB.multiply(b)));
             }
         }
 
@@ -263,23 +260,14 @@ public abstract class ServerPlayerInteractionManagerMixin {
             return false;
         }
 
+        if (state.isIn(MINECHANTS_THREE_BY_THREE_BLACKLIST)) {
+            return false;
+        }
+
         if (!state.isIn(BlockTags.PICKAXE_MINEABLE)) {
             return false;
         }
 
-        if (!state.isIn(BlockTags.BASE_STONE_OVERWORLD)
-                && !state.isIn(BlockTags.BASE_STONE_NETHER)
-                && !state.isIn(BlockTags.STONE_BRICKS)) {
-            return false;
-        }
-
-        return !state.isIn(BlockTags.COAL_ORES)
-                && !state.isIn(BlockTags.IRON_ORES)
-                && !state.isIn(BlockTags.COPPER_ORES)
-                && !state.isIn(BlockTags.GOLD_ORES)
-                && !state.isIn(BlockTags.REDSTONE_ORES)
-                && !state.isIn(BlockTags.LAPIS_ORES)
-                && !state.isIn(BlockTags.DIAMOND_ORES)
-                && !state.isIn(BlockTags.EMERALD_ORES);
+        return true;
     }
 }

@@ -41,10 +41,10 @@ public abstract class BlockMixin {
             return;
         }
 
-        var enchantmentLookup = world.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var smeltingEntry = enchantmentLookup.getOrThrow(ModEnchantments.SMELTING);
+        var enchantmentLookup = world.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        var smeltingEntry = enchantmentLookup.getEntry(ModEnchantments.SMELTING).orElseThrow();
         if (EnchantmentHelper.getLevel(smeltingEntry, tool) > 0) {
-            var silkTouchEntry = enchantmentLookup.getOrThrow(Enchantments.SILK_TOUCH);
+            var silkTouchEntry = enchantmentLookup.getEntry(Enchantments.SILK_TOUCH).orElseThrow();
             if (EnchantmentHelper.getLevel(silkTouchEntry, tool) > 0) {
                 return;
             }
@@ -77,8 +77,8 @@ public abstract class BlockMixin {
             return;
         }
 
-        var enchantmentLookup = serverWorld.getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
-        var magneticEntry = enchantmentLookup.getOrThrow(ModEnchantments.MAGNETIC);
+        var enchantmentLookup = serverWorld.getRegistryManager().get(RegistryKeys.ENCHANTMENT);
+        var magneticEntry = enchantmentLookup.getEntry(ModEnchantments.MAGNETIC).orElseThrow();
         if (EnchantmentHelper.getLevel(magneticEntry, context.tool()) <= 0) {
             return;
         }
