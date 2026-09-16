@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "minechants",
+  "version": "${version}",
+  "name": "Minechants",
+  "description": "Mining enchantments and toggleable mining features.",
+  "authors": [
+    "lemonboi439"
+  ],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "me.lemonboi439.minechants.client.MinechantsDataGenerator"
+    ],
+    "client": [
+      "me.lemonboi439.minechants.client.MinechantsClient"
+    ],
+    "modmenu": [
+      "me.lemonboi439.minechants.client.ModMenuCompat"
+    ],
+    "main": [
+      "me.lemonboi439.minechants.Minechants"
+    ]
+  },
+  "mixins": [
+    "minechants.mixins.json",
+    {
+      "config": "minechants.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  },
+  "suggests": {
+    "cloth-config": "*",
+    "modmenu": "*"
+  }
+}
