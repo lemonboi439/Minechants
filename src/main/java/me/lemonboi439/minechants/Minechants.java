@@ -18,10 +18,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.functions.EnchantRandomlyFunction;
 import net.minecraft.world.item.Items;
+
+import java.util.List;
 
 public class Minechants implements ModInitializer {
     public static final String MOD_ID = "minechants";
@@ -34,9 +38,9 @@ public class Minechants implements ModInitializer {
         LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
             if (source.isBuiltin() && key.equals(BuiltInLootTables.STRONGHOLD_LIBRARY)) {
                 var enchantments = registries.lookupOrThrow(Registries.ENCHANTMENT);
-                for (var enchantmentKey : new net.minecraft.resources.ResourceKey[] {
+                for (ResourceKey<Enchantment> enchantmentKey : List.of(
                         ModEnchantments.SMELTING, ModEnchantments.EXPLOSIVE,
-                        ModEnchantments.THREE_BY_THREE_MINER, ModEnchantments.MAGNETIC}) {
+                        ModEnchantments.THREE_BY_THREE_MINER, ModEnchantments.MAGNETIC)) {
                     var enchantment = enchantments.getOrThrow(enchantmentKey);
                     tableBuilder.withPool(net.minecraft.world.level.storage.loot.LootPool.lootPool()
                             .add(LootItem.lootTableItem(Items.BOOK)
@@ -102,7 +106,6 @@ public class Minechants implements ModInitializer {
         };
     }
 }
-
 
 
 
