@@ -9,6 +9,7 @@ import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
+import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -16,6 +17,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.loot.LootPool;
+import net.minecraft.loot.LootTable;
+import net.minecraft.loot.entry.LootTableEntry;
+import net.minecraft.loot.LootTables;
 
 public class Minechants implements ModInitializer {
     public static final String MOD_ID = "minechants";
@@ -24,6 +29,7 @@ public class Minechants implements ModInitializer {
     public void onInitialize() {
         MinechantsConfig.load();
         this.minechants$registerOptionalTreasurePacks();
+        this.minechants$registerStrongholdLibraryLoot();
         ModEnchantments.registerModEnchantments();
         PayloadTypeRegistry.playC2S().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
@@ -43,6 +49,15 @@ public class Minechants implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 ServerPlayNetworking.send(handler.player, new ExplosiveConfigPayload(MinechantsConfig.disableExplosiveOnServer))
         );
+    }
+
+    private void minechants$registerStrongholdLibraryLoot() {
+        LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
+            if (key.equals(LootTables.STRONGHOLD_LIBRARY_CHEST) && source.isBuiltin()) {
+                tableBuilder.pool(LootPool.builder()
+                        .with(LootTableEntry.builder(Identifier.of(MOD_ID, "chests/stronghold_minechants"))));
+            }
+        });
     }
 
     private void minechants$registerOptionalTreasurePacks() {
