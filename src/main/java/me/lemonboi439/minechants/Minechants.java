@@ -9,6 +9,7 @@ import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
+import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -16,6 +17,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.loot.LootTables;
+import net.minecraft.loot.entry.ItemEntry;
+import net.minecraft.loot.function.EnchantRandomlyLootFunction;
+import net.minecraft.item.Items;
 
 public class Minechants implements ModInitializer {
     public static final String MOD_ID = "minechants";
@@ -25,6 +30,13 @@ public class Minechants implements ModInitializer {
         MinechantsConfig.load();
         this.minechants$registerOptionalTreasurePacks();
         ModEnchantments.registerModEnchantments();
+        LootTableEvents.MODIFY.register((key, tableBuilder, source) -> {
+            if (source.isBuiltin() && key.equals(LootTables.STRONGHOLD_LIBRARY_CHEST)) {
+                tableBuilder.pool(net.minecraft.loot.LootPool.builder()
+                        .with(ItemEntry.builder(Items.BOOK)
+                                .apply(EnchantRandomlyLootFunction.builder(null))));
+            }
+        });
         PayloadTypeRegistry.playC2S().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.ID, (payload, context) -> {
