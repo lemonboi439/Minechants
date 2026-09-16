@@ -1,23 +1,18 @@
 package me.lemonboi439.minechants.network;
 
 import me.lemonboi439.minechants.Minechants;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
-public record ExplosiveConfigPayload(boolean disableExplosiveOnServer) implements CustomPayload {
-    public static final CustomPayload.Id<ExplosiveConfigPayload> ID =
-            new CustomPayload.Id<>(Identifier.of(Minechants.MOD_ID, "explosive_config"));
-    public static final PacketCodec<RegistryByteBuf, ExplosiveConfigPayload> CODEC = PacketCodec.tuple(
-            PacketCodecs.BOOLEAN,
-            ExplosiveConfigPayload::disableExplosiveOnServer,
-            ExplosiveConfigPayload::new
-    );
+public record ExplosiveConfigPayload(boolean disableExplosiveOnServer) implements CustomPacketPayload {
+    public static final Type<ExplosiveConfigPayload> ID = new Type<>(Identifier.fromNamespaceAndPath(Minechants.MOD_ID, "explosive_config"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, ExplosiveConfigPayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.BOOL, ExplosiveConfigPayload::disableExplosiveOnServer,
+            ExplosiveConfigPayload::new);
 
     @Override
-    public Id<? extends CustomPayload> getId() {
-        return ID;
-    }
+    public Type<? extends CustomPacketPayload> type() { return ID; }
 }

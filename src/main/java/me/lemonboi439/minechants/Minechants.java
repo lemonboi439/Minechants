@@ -4,6 +4,7 @@ import me.lemonboi439.minechants.config.MinechantsConfig;
 import me.lemonboi439.minechants.enchantment.ModEnchantments;
 import me.lemonboi439.minechants.network.ExplosiveConfigPayload;
 import me.lemonboi439.minechants.network.ToggleFeaturePayload;
+import me.lemonboi439.minechants.loot.MinechantsLoot;
 import me.lemonboi439.minechants.util.FeatureToggleState;
 import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.api.ModInitializer;
@@ -13,9 +14,9 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 
 public class Minechants implements ModInitializer {
     public static final String MOD_ID = "minechants";
@@ -25,15 +26,16 @@ public class Minechants implements ModInitializer {
         MinechantsConfig.load();
         this.minechants$registerOptionalTreasurePacks();
         ModEnchantments.registerModEnchantments();
-        PayloadTypeRegistry.playC2S().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
+        MinechantsLoot.register();
+        PayloadTypeRegistry.serverboundPlay().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.ID, (payload, context) -> {
-            ServerPlayerEntity player = context.player();
+            ServerPlayer player = context.player();
             context.server().execute(() -> {
                 ToggleFeature feature = payload.feature();
                 boolean enabled = FeatureToggleState.toggle(player, feature);
-                player.sendMessage(
-                        Text.translatable(
+                player.sendSystemMessage(
+                        Component.translatable(
                                 enabled ? this.minechants$getEnabledMessageKey(feature) : this.minechants$getDisabledMessageKey(feature)
                         ),
                         true
@@ -50,7 +52,7 @@ public class Minechants implements ModInitializer {
 
         if (!MinechantsConfig.threeByThreeTreasureOnly) {
             ResourceManagerHelper.registerBuiltinResourcePack(
-                    Identifier.of(MOD_ID, "three_by_three_non_treasure"),
+                    Identifier.fromNamespaceAndPath(MOD_ID, "three_by_three_non_treasure"),
                     modContainer,
                     ResourcePackActivationType.DEFAULT_ENABLED
             );
@@ -58,7 +60,7 @@ public class Minechants implements ModInitializer {
 
         if (!MinechantsConfig.explosiveTreasureOnly) {
             ResourceManagerHelper.registerBuiltinResourcePack(
-                    Identifier.of(MOD_ID, "explosive_non_treasure"),
+                    Identifier.fromNamespaceAndPath(MOD_ID, "explosive_non_treasure"),
                     modContainer,
                     ResourcePackActivationType.DEFAULT_ENABLED
             );

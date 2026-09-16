@@ -6,24 +6,25 @@ import me.lemonboi439.minechants.enchantment.ModEnchantments;
 import me.lemonboi439.minechants.util.FeatureToggleState;
 import me.lemonboi439.minechants.util.MiningContext;
 import me.lemonboi439.minechants.util.ToggleFeature;
-import net.minecraft.block.BlockState;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.collection.Pool;
-import net.minecraft.world.World;
-import net.minecraft.world.explosion.Explosion;
-import net.minecraft.world.explosion.ExplosionBehavior;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerPlayerGameMode;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import java.util.List;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.ExplosionDamageCalculator;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,87 +37,81 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(ServerPlayerInteractionManager.class)
-public abstract class ServerPlayerInteractionManagerMixin {
+@Mixin(ServerPlayerGameMode.class)
+public abstract class ServerPlayerGameModeMixin {
     @Unique
-    private static final TagKey<net.minecraft.block.Block> MINECHANTS_THREE_BY_THREE_BLACKLIST = TagKey.of(
-            RegistryKeys.BLOCK,
-            Identifier.of(Minechants.MOD_ID, "3x3_miner_blacklist")
+    private static final TagKey<net.minecraft.world.level.block.Block> MINECHANTS_THREE_BY_THREE_BLACKLIST = TagKey.create(
+            Registries.BLOCK,
+            Identifier.fromNamespaceAndPath(Minechants.MOD_ID, "3x3_miner_blacklist")
     );
     @Unique
-    private static final ExplosionBehavior minechants$visualExplosionBehavior = new ExplosionBehavior() {
+    private static final ExplosionDamageCalculator minechants$visualExplosionDamageCalculator = new ExplosionDamageCalculator() {
         @Override
-        public boolean canDestroyBlock(Explosion explosion, net.minecraft.world.BlockView world, BlockPos pos, BlockState state, float power) {
+        public boolean shouldBlockExplode(Explosion explosion, net.minecraft.world.level.BlockGetter world, BlockPos pos, BlockState state, float power) {
             return false;
         }
     };
 
-    @Shadow @Final protected ServerPlayerEntity player;
+    @Shadow @Final protected ServerPlayer player;
 
     @Unique
     private boolean minechants$processingExplosiveBreak;
     @Unique
     private boolean minechants$processingMinerBreak;
 
-    @Inject(method = "tryBreakBlock", at = @At("HEAD"))
+    @Inject(method = "destroyBlock", at = @At("HEAD"))
     private void minechants$pushMiningContext(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        MiningContext.push(this.player, this.player.getMainHandStack());
+        MiningContext.push(this.player, this.player.getMainHandItem());
     }
 
-    @Inject(method = "tryBreakBlock", at = @At("RETURN"))
+    @Inject(method = "destroyBlock", at = @At("RETURN"))
     private void minechants$clearMiningContext(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         MiningContext.clear();
     }
 
-    @Inject(method = "tryBreakBlock", at = @At("RETURN"))
+    @Inject(method = "destroyBlock", at = @At("RETURN"))
     private void minechants$breakExplosiveBurst(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        if (!cir.getReturnValueZ() || this.minechants$processingExplosiveBreak) {
+        if (!cir.getReturnValue() || this.minechants$processingExplosiveBreak) {
             return;
         }
 
-        ItemStack tool = this.player.getMainHandStack();
+        ItemStack tool = this.player.getMainHandItem();
         if (tool.isEmpty()) {
             return;
         }
 
-        var enchantmentLookup = this.player.getEntityWorld().getRegistryManager().getOrThrow(RegistryKeys.ENCHANTMENT);
+        var enchantmentLookup = this.player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         var explosiveEntry = enchantmentLookup.getOrThrow(ModEnchantments.EXPLOSIVE);
-        int level = EnchantmentHelper.getLevel(explosiveEntry, tool);
+        int level = EnchantmentHelper.getItemEnchantmentLevel(explosiveEntry, tool);
         if (level <= 0 || !MinechantsConfig.explosiveEnabled || !FeatureToggleState.isEnabled(this.player, ToggleFeature.EXPLOSIVE)) {
             this.minechants$scheduleMinerBurst(pos, tool, enchantmentLookup);
             return;
         }
 
-        if (!this.player.getEntityWorld().isClient() && MinechantsConfig.disableExplosiveOnServer) {
+        if (!this.player.level().isClientSide() && MinechantsConfig.disableExplosiveOnServer) {
             this.minechants$scheduleMinerBurst(pos, tool, enchantmentLookup);
             return;
         }
 
-        BlockPos direction = this.minechants$getForwardStep(this.player.getRotationVec(1.0F));
-        if (direction.equals(BlockPos.ORIGIN)) {
+        BlockPos direction = this.minechants$getForwardStep(this.player.getLookAngle());
+        if (direction.equals(BlockPos.ZERO)) {
             return;
         }
 
         this.minechants$processingExplosiveBreak = true;
         try {
-            ServerPlayerInteractionManager manager = (ServerPlayerInteractionManager) (Object) this;
-            int explosivePower = MathHelper.clamp(MinechantsConfig.explosivePower, 1, 5);
+            ServerPlayerGameMode manager = (ServerPlayerGameMode) (Object) this;
+            int explosivePower = Mth.clamp(MinechantsConfig.explosivePower, 1, 5);
             double radius = 0.85D + (explosivePower * 0.5D);
-            Vec3d center = Vec3d.ofCenter(pos).add(Vec3d.of(direction).multiply(0.8D + (0.2D * explosivePower)));
-            this.player.getEntityWorld().createExplosion(
+            Vec3 center = Vec3.atCenterOf(pos).add(Vec3.atLowerCornerOf(direction).scale(0.8D + (0.2D * explosivePower)));
+            this.player.level().explode(
                     this.player,
-                    this.player.getEntityWorld().getDamageSources().explosion(this.player, this.player),
-                    minechants$visualExplosionBehavior,
-                    center.x,
-                    center.y,
-                    center.z,
+                    this.player.level().damageSources().explosion(this.player, this.player),
+                    minechants$visualExplosionDamageCalculator,
+                    center,
                     0.75F + (explosivePower * 0.25F),
                     false,
-                    World.ExplosionSourceType.TNT,
-                    ParticleTypes.EXPLOSION_EMITTER,
-                    ParticleTypes.EXPLOSION,
-                    Pool.empty(),
-                    SoundEvents.ENTITY_GENERIC_EXPLODE
+                    Level.ExplosionInteraction.TNT
             );
             this.minechants$breakBlastArea(manager, center, radius, pos);
         } finally {
@@ -125,30 +120,30 @@ public abstract class ServerPlayerInteractionManagerMixin {
     }
 
     @Unique
-    private void minechants$scheduleMinerBurst(BlockPos pos, ItemStack tool, net.minecraft.registry.RegistryEntryLookup<net.minecraft.enchantment.Enchantment> enchantmentLookup) {
+    private void minechants$scheduleMinerBurst(BlockPos pos, ItemStack tool, net.minecraft.core.HolderLookup.RegistryLookup<Enchantment> enchantmentLookup) {
         if (this.minechants$processingMinerBreak) {
             return;
         }
 
         var minerEntry = enchantmentLookup.getOrThrow(ModEnchantments.THREE_BY_THREE_MINER);
-        if (EnchantmentHelper.getLevel(minerEntry, tool) <= 0
+        if (EnchantmentHelper.getItemEnchantmentLevel(minerEntry, tool) <= 0
                 || !MinechantsConfig.threeByThreeEnabled
                 || !FeatureToggleState.isEnabled(this.player, ToggleFeature.THREE_BY_THREE_MINER)) {
             return;
         }
 
-        BlockPos forward = this.minechants$getForwardStep(this.player.getRotationVec(1.0F));
-        if (forward.equals(BlockPos.ORIGIN)) {
+        BlockPos forward = this.minechants$getForwardStep(this.player.getLookAngle());
+        if (forward.equals(BlockPos.ZERO)) {
             return;
         }
 
         this.minechants$processingMinerBreak = true;
         try {
-            ServerPlayerInteractionManager manager = (ServerPlayerInteractionManager) (Object) this;
+            ServerPlayerGameMode manager = (ServerPlayerGameMode) (Object) this;
             for (BlockPos offset : this.minechants$getMinerOffsets(forward)) {
-                BlockPos target = pos.add(offset);
+                BlockPos target = pos.offset(offset);
                 if (this.minechants$canThreeByThreeMine(target)) {
-                    manager.tryBreakBlock(target);
+                    manager.destroyBlock(target);
                 }
             }
         } finally {
@@ -157,36 +152,36 @@ public abstract class ServerPlayerInteractionManagerMixin {
     }
 
     @Unique
-    private BlockPos minechants$getForwardStep(Vec3d rotation) {
+    private BlockPos minechants$getForwardStep(Vec3 rotation) {
         double x = Math.abs(rotation.x);
         double y = Math.abs(rotation.y);
         double z = Math.abs(rotation.z);
 
         if (x >= y && x >= z) {
-            return BlockPos.ofFloored(Math.signum(rotation.x), 0, 0);
+            return BlockPos.containing(Math.signum(rotation.x), 0, 0);
         }
 
         if (z >= x && z >= y) {
-            return BlockPos.ofFloored(0, 0, Math.signum(rotation.z));
+            return BlockPos.containing(0, 0, Math.signum(rotation.z));
         }
 
-        return BlockPos.ofFloored(0, Math.signum(rotation.y), 0);
+        return BlockPos.containing(0, Math.signum(rotation.y), 0);
     }
 
     @Unique
-    private void minechants$breakBlastArea(ServerPlayerInteractionManager manager, Vec3d center, double radius, BlockPos origin) {
+    private void minechants$breakBlastArea(ServerPlayerGameMode manager, Vec3 center, double radius, BlockPos origin) {
         int blockRadius = (int) Math.ceil(radius);
-        BlockPos centerPos = BlockPos.ofFloored(center);
-        for (BlockPos target : BlockPos.iterate(centerPos.add(-blockRadius, -blockRadius, -blockRadius), centerPos.add(blockRadius, blockRadius, blockRadius))) {
+        BlockPos centerPos = BlockPos.containing(center);
+        for (BlockPos target : BlockPos.betweenClosed(centerPos.offset(-blockRadius, -blockRadius, -blockRadius), centerPos.offset(blockRadius, blockRadius, blockRadius))) {
             if (target.equals(origin)) {
                 continue;
             }
 
-            if (Vec3d.ofCenter(target).squaredDistanceTo(center) > radius * radius) {
+            if (Vec3.atCenterOf(target).distanceToSqr(center) > radius * radius) {
                 continue;
             }
 
-            manager.tryBreakBlock(target.toImmutable());
+            manager.destroyBlock(target.immutable());
         }
     }
 
@@ -202,7 +197,7 @@ public abstract class ServerPlayerInteractionManagerMixin {
                     continue;
                 }
 
-                offsets.add(axisA.multiply(a).add(axisB.multiply(b)));
+                offsets.add(axisA.multiply(a).offset(axisB.multiply(b)));
             }
         }
 
@@ -268,19 +263,19 @@ public abstract class ServerPlayerInteractionManagerMixin {
 
     @Unique
     private boolean minechants$canThreeByThreeMine(BlockPos pos) {
-        BlockState state = this.player.getEntityWorld().getBlockState(pos);
+        BlockState state = this.player.level().getBlockState(pos);
         if (state.isAir() || state.hasBlockEntity()) {
             return false;
         }
 
-        if (state.isIn(MINECHANTS_THREE_BY_THREE_BLACKLIST)) {
+        if (state.is(MINECHANTS_THREE_BY_THREE_BLACKLIST)) {
             return false;
         }
 
-        if (!state.isIn(BlockTags.PICKAXE_MINEABLE)) {
+        if (!state.is(BlockTags.MINEABLE_WITH_PICKAXE)) {
             return false;
         }
 
-        return this.player.getMainHandStack().canMine(state, this.player.getEntityWorld(), pos, this.player);
+        return this.player.getMainHandItem().isCorrectToolForDrops(state);
     }
 }

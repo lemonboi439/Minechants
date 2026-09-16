@@ -7,38 +7,38 @@ import me.lemonboi439.minechants.util.ServerConfigState;
 import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class MinechantsClient implements ClientModInitializer {
-    private static final KeyBinding.Category MINECHANTS_CATEGORY =
-            KeyBinding.Category.create(Identifier.of(Minechants.MOD_ID, "minechants"));
-    private static final KeyBinding TOGGLE_SMELTING_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+    private static final KeyMapping.Category MINECHANTS_CATEGORY =
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath(Minechants.MOD_ID, "minechants"));
+    private static final KeyMapping TOGGLE_SMELTING_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.minechants.toggle_smelting",
-            InputUtil.Type.KEYSYM,
+            InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_J,
             MINECHANTS_CATEGORY
     ));
-    private static final KeyBinding TOGGLE_MINER_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+    private static final KeyMapping TOGGLE_MINER_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.minechants.toggle_miner",
-            InputUtil.Type.KEYSYM,
+            InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_G,
             MINECHANTS_CATEGORY
     ));
-    private static final KeyBinding TOGGLE_EXPLOSIVE_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+    private static final KeyMapping TOGGLE_EXPLOSIVE_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.minechants.toggle_explosive",
-            InputUtil.Type.KEYSYM,
+            InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_H,
             MINECHANTS_CATEGORY
     ));
-    private static final KeyBinding TOGGLE_MAGNETIC_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+    private static final KeyMapping TOGGLE_MAGNETIC_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.minechants.toggle_magnetic",
-            InputUtil.Type.KEYSYM,
+            InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_K,
             MINECHANTS_CATEGORY
     ));
@@ -57,8 +57,8 @@ public class MinechantsClient implements ClientModInitializer {
         });
     }
 
-    private void minechants$handleToggle(net.minecraft.client.MinecraftClient client, KeyBinding keyBinding, ToggleFeature feature) {
-        while (keyBinding.wasPressed()) {
+    private void minechants$handleToggle(net.minecraft.client.Minecraft client, KeyMapping keyBinding, ToggleFeature feature) {
+        while (keyBinding.consumeClick()) {
             if (client.player != null && ClientPlayNetworking.canSend(ToggleFeaturePayload.ID)) {
                 ClientPlayNetworking.send(new ToggleFeaturePayload(feature));
             }
