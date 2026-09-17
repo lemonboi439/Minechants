@@ -4,9 +4,7 @@
   "package": "me.lemonboi439.minechants.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "BlockMixin",
-    "MinecraftServerMixin",
-    "ServerPlayerInteractionManagerMixin"
+    "ServerPlayerGameModeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

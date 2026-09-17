@@ -2,23 +2,31 @@ package me.lemonboi439.minechants.network;
 
 import me.lemonboi439.minechants.Minechants;
 import me.lemonboi439.minechants.util.ToggleFeature;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 
-public record ToggleFeaturePayload(ToggleFeature feature) implements CustomPayload {
-    public static final CustomPayload.Id<ToggleFeaturePayload> ID =
-            new CustomPayload.Id<>(Identifier.of(Minechants.MOD_ID, "toggle_feature"));
-    public static final PacketCodec<RegistryByteBuf, ToggleFeaturePayload> CODEC = PacketCodec.tuple(
-            PacketCodecs.indexed(index -> ToggleFeature.values()[index], ToggleFeature::ordinal),
+public record ToggleFeaturePayload(ToggleFeature feature) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<ToggleFeaturePayload> TYPE =
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(Minechants.MOD_ID, "toggle_feature"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, ToggleFeaturePayload> CODEC = StreamCodec.composite(
+            ByteBufCodecs.idMapper(index -> ToggleFeature.values()[index], ToggleFeature::ordinal),
             ToggleFeaturePayload::feature,
             ToggleFeaturePayload::new
     );
 
     @Override
-    public Id<? extends CustomPayload> getId() {
-        return ID;
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }
+
+
+
+
+
+
+
+

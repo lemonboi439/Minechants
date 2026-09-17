@@ -14,13 +14,18 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.loot.LootPool;
-import net.minecraft.loot.LootTable;
-import net.minecraft.loot.entry.LootTableEntry;
-import net.minecraft.loot.LootTables;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.EnchantRandomlyFunction;
+import net.minecraft.world.item.Items;
+
+import java.util.List;
 
 public class Minechants implements ModInitializer {
     public static final String MOD_ID = "minechants";
@@ -29,17 +34,29 @@ public class Minechants implements ModInitializer {
     public void onInitialize() {
         MinechantsConfig.load();
         this.minechants$registerOptionalTreasurePacks();
-        this.minechants$registerStrongholdLibraryLoot();
         ModEnchantments.registerModEnchantments();
-        PayloadTypeRegistry.playC2S().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.ID, (payload, context) -> {
-            ServerPlayerEntity player = context.player();
+        LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
+            if (source.isBuiltin() && key.equals(BuiltInLootTables.STRONGHOLD_LIBRARY)) {
+                var enchantments = registries.lookupOrThrow(Registries.ENCHANTMENT);
+                for (ResourceKey<Enchantment> enchantmentKey : List.of(
+                        ModEnchantments.SMELTING, ModEnchantments.EXPLOSIVE,
+                        ModEnchantments.THREE_BY_THREE_MINER, ModEnchantments.MAGNETIC)) {
+                    var enchantment = enchantments.getOrThrow(enchantmentKey);
+                    tableBuilder.withPool(net.minecraft.world.level.storage.loot.LootPool.lootPool()
+                            .add(LootItem.lootTableItem(Items.BOOK)
+                                    .apply(new EnchantRandomlyFunction.Builder().withEnchantment(enchantment))));
+                }
+            }
+        });
+        PayloadTypeRegistry.serverboundPlay().register(ToggleFeaturePayload.TYPE, ToggleFeaturePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ExplosiveConfigPayload.TYPE, ExplosiveConfigPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.TYPE, (payload, context) -> {
+            ServerPlayer player = context.player();
             context.server().execute(() -> {
                 ToggleFeature feature = payload.feature();
                 boolean enabled = FeatureToggleState.toggle(player, feature);
-                player.sendMessage(
-                        Text.translatable(
+                player.sendSystemMessage(
+                        Component.translatable(
                                 enabled ? this.minechants$getEnabledMessageKey(feature) : this.minechants$getDisabledMessageKey(feature)
                         ),
                         true
@@ -51,21 +68,12 @@ public class Minechants implements ModInitializer {
         );
     }
 
-    private void minechants$registerStrongholdLibraryLoot() {
-        LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
-            if (key.equals(LootTables.STRONGHOLD_LIBRARY_CHEST) && source.isBuiltin()) {
-                tableBuilder.pool(LootPool.builder()
-                        .with(LootTableEntry.builder(Identifier.of(MOD_ID, "chests/stronghold_minechants"))));
-            }
-        });
-    }
-
     private void minechants$registerOptionalTreasurePacks() {
         var modContainer = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow();
 
         if (!MinechantsConfig.threeByThreeTreasureOnly) {
             ResourceManagerHelper.registerBuiltinResourcePack(
-                    Identifier.of(MOD_ID, "three_by_three_non_treasure"),
+                    Identifier.fromNamespaceAndPath(MOD_ID, "three_by_three_non_treasure"),
                     modContainer,
                     ResourcePackActivationType.DEFAULT_ENABLED
             );
@@ -73,7 +81,7 @@ public class Minechants implements ModInitializer {
 
         if (!MinechantsConfig.explosiveTreasureOnly) {
             ResourceManagerHelper.registerBuiltinResourcePack(
-                    Identifier.of(MOD_ID, "explosive_non_treasure"),
+                    Identifier.fromNamespaceAndPath(MOD_ID, "explosive_non_treasure"),
                     modContainer,
                     ResourcePackActivationType.DEFAULT_ENABLED
             );
@@ -98,3 +106,9 @@ public class Minechants implements ModInitializer {
         };
     }
 }
+
+
+
+
+
+

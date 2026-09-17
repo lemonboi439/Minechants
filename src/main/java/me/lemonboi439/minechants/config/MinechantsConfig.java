@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -47,7 +47,7 @@ public final class MinechantsConfig {
         explosiveEnabled = loaded.explosiveEnabled;
         smeltingEnabled = loaded.smeltingEnabled;
         magneticEnabled = loaded.magneticEnabled;
-        explosivePower = MathHelper.clamp(loaded.explosivePower, 1, 5);
+        explosivePower = Mth.clamp(loaded.explosivePower, 1, 5);
         threeByThreeTreasureOnly = loaded.threeByThreeTreasureOnly;
         explosiveTreasureOnly = loaded.explosiveTreasureOnly;
         disableExplosiveOnServer = loaded.disableExplosiveOnServer;
@@ -61,7 +61,7 @@ public final class MinechantsConfig {
         data.explosiveEnabled = explosiveEnabled;
         data.smeltingEnabled = smeltingEnabled;
         data.magneticEnabled = magneticEnabled;
-        data.explosivePower = MathHelper.clamp(explosivePower, 1, 5);
+        data.explosivePower = Mth.clamp(explosivePower, 1, 5);
         data.threeByThreeTreasureOnly = threeByThreeTreasureOnly;
         data.explosiveTreasureOnly = explosiveTreasureOnly;
         data.disableExplosiveOnServer = disableExplosiveOnServer;
@@ -100,3 +100,11 @@ public final class MinechantsConfig {
         private boolean disableExplosiveOnServer = false;
     }
 }
+
+
+
+
+
+
+
+
