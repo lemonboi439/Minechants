@@ -84,14 +84,17 @@ public abstract class ServerPlayerGameModeMixin {
                 BlockPos forward = this.minechants$getForwardStep(this.player.getLookAngle());
                 BlockPos axisA = this.minechants$getPrimaryPerpendicularAxis(forward);
                 BlockPos axisB = this.minechants$getSecondaryPerpendicularAxis(forward);
-                for (int a = -1; a <= 1; a++) {
-                    for (int b = -1; b <= 1; b++) {
-                        if (a == 0 && b == 0) continue;
-                        BlockPos target = pos.offset(axisA.getX() * a + axisB.getX() * b,
-                                axisA.getY() * a + axisB.getY() * b,
-                                axisA.getZ() * a + axisB.getZ() * b);
-                        if (this.minechants$canMine(target, tool)) {
-                            ((ServerPlayerGameMode) (Object) this).destroyBlock(target);
+                for (int depth = 0; depth <= 2; depth++) {
+                    for (int a = -1; a <= 1; a++) {
+                        for (int b = -1; b <= 1; b++) {
+                            if (depth == 0 && a == 0 && b == 0) continue;
+                            BlockPos target = pos.offset(
+                                    forward.getX() * depth + axisA.getX() * a + axisB.getX() * b,
+                                    forward.getY() * depth + axisA.getY() * a + axisB.getY() * b,
+                                    forward.getZ() * depth + axisA.getZ() * a + axisB.getZ() * b);
+                            if (this.minechants$canMine(target, tool)) {
+                                ((ServerPlayerGameMode) (Object) this).destroyBlock(target);
+                            }
                         }
                     }
                 }
