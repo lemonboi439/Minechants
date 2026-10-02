@@ -7,7 +7,6 @@ import me.lemonboi439.minechants.network.ToggleFeaturePayload;
 import me.lemonboi439.minechants.loot.MinechantsLoot;
 import me.lemonboi439.minechants.util.FeatureToggleState;
 import me.lemonboi439.minechants.util.MinerQueue;
-import me.lemonboi439.minechants.util.MinerQueue;
 import me.lemonboi439.minechants.util.ToggleFeature;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -16,7 +15,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
@@ -32,7 +30,6 @@ public class Minechants implements ModInitializer {
         ModEnchantments.registerModEnchantments();
         ServerTickEvents.END_SERVER_TICK.register(MinerQueue::tick);
         MinechantsLoot.register();
-        ServerTickEvents.END_SERVER_TICK.register(MinerQueue::tick);
         PayloadTypeRegistry.serverboundPlay().register(ToggleFeaturePayload.ID, ToggleFeaturePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ExplosiveConfigPayload.ID, ExplosiveConfigPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ToggleFeaturePayload.ID, (payload, context) -> {
