@@ -4,6 +4,7 @@ import me.lemonboi439.minechants.Minechants;
 import me.lemonboi439.minechants.config.MinechantsConfig;
 import me.lemonboi439.minechants.enchantment.ModEnchantments;
 import me.lemonboi439.minechants.util.FeatureToggleState;
+import me.lemonboi439.minechants.util.MiningContext;
 import me.lemonboi439.minechants.util.ToggleFeature;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -38,6 +39,16 @@ public abstract class ServerPlayerGameModeMixin {
     @Shadow @Final protected ServerPlayer player;
     @Unique private boolean minechants$processingExplosiveBreak;
     @Unique private boolean minechants$processingMinerBreak;
+
+    @Inject(method = "destroyBlock", at = @At("HEAD"))
+    private void minechants$pushMiningContext(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+        MiningContext.push(this.player, this.player.getMainHandItem());
+    }
+
+    @Inject(method = "destroyBlock", at = @At("RETURN"))
+    private void minechants$clearMiningContext(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+        MiningContext.clear();
+    }
 
     @Inject(method = "destroyBlock", at = @At("RETURN"))
     private void minechants$breakAdditionalBlocks(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
