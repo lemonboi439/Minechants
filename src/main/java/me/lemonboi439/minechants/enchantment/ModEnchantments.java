@@ -23,6 +23,10 @@ public class ModEnchantments {
             Registries.ENCHANTMENT,
             Identifier.fromNamespaceAndPath(Minechants.MOD_ID, "magnetic")
     );
+    public static final ResourceKey<Enchantment> EXTENSION = ResourceKey.create(
+            Registries.ENCHANTMENT,
+            Identifier.fromNamespaceAndPath(Minechants.MOD_ID, "extension")
+    );
 
     public static void registerModEnchantments() {
         System.out.println("Registering mod enchantments for " + Minechants.MOD_ID);
