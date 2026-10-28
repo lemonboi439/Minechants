@@ -23,6 +23,10 @@ public class ModEnchantments {
             RegistryKeys.ENCHANTMENT,
             Identifier.of(Minechants.MOD_ID, "magnetic")
     );
+    public static final RegistryKey<Enchantment> EXTENSION = RegistryKey.of(
+            RegistryKeys.ENCHANTMENT,
+            Identifier.of(Minechants.MOD_ID, "extension")
+    );
 
     public static void registerModEnchantments() {
         System.out.println("Registering mod enchantments for " + Minechants.MOD_ID);
