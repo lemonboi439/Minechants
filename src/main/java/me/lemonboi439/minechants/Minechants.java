@@ -40,7 +40,8 @@ public class Minechants implements ModInitializer {
                 var enchantments = registries.lookupOrThrow(Registries.ENCHANTMENT);
                 for (ResourceKey<Enchantment> enchantmentKey : List.of(
                         ModEnchantments.SMELTING, ModEnchantments.EXPLOSIVE,
-                        ModEnchantments.THREE_BY_THREE_MINER, ModEnchantments.MAGNETIC)) {
+                        ModEnchantments.THREE_BY_THREE_MINER, ModEnchantments.MAGNETIC,
+                        ModEnchantments.EXTENSION)) {
                     var enchantment = enchantments.getOrThrow(enchantmentKey);
                     tableBuilder.withPool(net.minecraft.world.level.storage.loot.LootPool.lootPool()
                             .add(LootItem.lootTableItem(Items.BOOK)

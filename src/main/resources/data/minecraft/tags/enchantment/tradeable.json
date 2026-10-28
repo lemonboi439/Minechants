@@ -4,6 +4,7 @@
     "minechants:smelting",
     "minechants:three_by_three_miner",
     "minechants:explosive",
-    "minechants:magnetic"
+    "minechants:magnetic",
+    "minechants:extension"
   ]
 }
